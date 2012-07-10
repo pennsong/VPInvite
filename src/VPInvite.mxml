@@ -21,7 +21,7 @@
 			// please insert your web service URL here for exchanging peer ID
 			// private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
 			//test
-			private const WebServiceUrl:String = "http://www.localshiyishi.cn/reg/index.do";
+			private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
 			//test
 			
 			// this is the connection to rtmfp server
