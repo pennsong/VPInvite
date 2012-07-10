@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   minWidth="376" minHeight="293">
+	<s:states>
+		<s:State name="login"/>
+		<s:State name="main"/>
+	</s:states>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<s:HTTPService id="inviteService" result="getIds()"/>
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			// rtmfp server address (Adobe Cirrus or FMS)
+			private var connectUrl:String = "rtmfp://210.51.38.12/cr";			
+			// developer key, please insert your developer key here
+			private const DeveloperKey:String = "4cd930a206f39d7d7566149d-396053390564";
+			
+			// please insert your web service URL here for exchanging peer ID
+			// private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
+			private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
+			
+			// this is the connection to rtmfp server
+			private var netConnection:NetConnection;	
+					
+			private var talentId:String;
+			private var companyId:String;
+			// incoming media stream (audio, video, text and some control messages)
+			private var talentStream:NetStream;
+			private var companyStream:NetStream;
+			
+			private var talentVideo:Video;
+			private var companyVideo:Video;
+			
+			private function login():void
+			{
+				inviteService.url = WebServiceUrl;
+				var request:Object = new Object();
+				request.taskType = 'join';
+				request.inviteCode = inviteCode.text;
+				inviteService.send(request);
+			}
+			
+			private function connectSuccess():void
+			{			
+				talentStream = new NetStream(netConnection, talentId);
+				talentStream.addEventListener(NetStatusEvent.NET_STATUS, incomingStreamHandler);
+				talentStream.play("media-callee");
+				
+				talentVideo = new Video();
+				talentVideo.width = 180;
+				talentVideo.height = 135;
+				talentVideo.attachNetStream(talentStream);
+				talentVideoDisplay.addChild(talentVideo);
+				
+				companyStream = new NetStream(netConnection, companyId);
+				companyStream.addEventListener(NetStatusEvent.NET_STATUS, incomingStreamHandler);
+				companyStream.play("media-caller");
+				
+				companyVideo = new Video();
+				companyVideo.width = 180;
+				companyVideo.height = 135;
+				companyVideo.attachNetStream(companyStream);
+				companyVideoDisplay.addChild(companyVideo);
+			}
+			
+			// sending text message
+			private function onSend():void
+			{
+				var msg:String = textInput.text; 
+				if (msg.length != 0 && companyStream)
+				{
+					textOutput.text += '嘉宾' + ": " + msg + "\n";
+					netConnection.call('relay', null, companyId, 'sms', msg);
+					textInput.text = "";
+				}
+			}
+			
+			private function incomingStreamHandler(event:NetStatusEvent):void
+			{
+				trace("Incoming stream event: " + event.info.code + "\n");
+			}
+			
+			private function netConnectionHandler(event:NetStatusEvent):void
+			{	
+				switch (event.info.code)
+				{
+					case "NetConnection.Connect.Success":
+						connectSuccess();
+						break;
+				}
+			}
+			
+			private function getIds():void
+			{
+				var tmpTalentId:* = inviteService.lastResult.result.talentId;
+				var tmpCompanyId:* = inviteService.lastResult.result.companyId;
+				if (  tmpTalentId != false && tmpCompanyId != false)
+				{
+					talentId = tmpTalentId;
+					companyId = tmpCompanyId;
+					netConnection = new NetConnection();
+					netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
+					try
+					{
+						netConnection.connect(connectUrl, DeveloperKey);
+					}
+					catch (e:ArgumentError)
+					{
+						return;
+					}
+					currentState = 'main';
+				}
+				else
+				{
+					inviteCode.text="邀请码过期，请重新输入";
+				}
+			}
+
+		]]>
+	</fx:Script>
+	<s:BorderContainer width="376" height="293" backgroundColor="0x303030" borderStyle="solid"
+					   cornerRadius="10">
+		<s:layout>
+			<s:VerticalLayout paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5"/>
+		</s:layout>
+		
+		<s:HGroup includeIn="main">
+			<s:VGroup>			
+				
+				<s:HGroup>
+					<s:VGroup width="182" height="137">
+						<mx:VideoDisplay id="talentVideoDisplay" width="180" height="135"/>
+					</s:VGroup>
+					<s:VGroup>
+						<mx:VideoDisplay id="companyVideoDisplay" width="180" height="135"/>
+						<mx:Spacer height="10"/>
+					</s:VGroup>
+				</s:HGroup>
+				
+				<s:TextArea id="textOutput" width="369" height="100" editable="false"
+							verticalScrollPolicy="auto"/>
+				
+				<s:HGroup>
+					<s:TextInput id="textInput" width="293" enter="onSend()"/>
+					<s:Button label="发送" click="onSend()" enabled="{textInput.text.length &gt; 0}"
+							  styleName="buttonStyle"/>
+				</s:HGroup>
+				
+			</s:VGroup>
+		</s:HGroup>
+		<s:VGroup paddingLeft.login="130" paddingTop.login="80">
+			<s:TextInput id="inviteCode" includeIn="login"/>
+			<s:HGroup includeIn="login" width="126" height="28">
+				<s:Spacer includeIn="login" width="20" height="17"/>
+				<s:Button includeIn="login" label="登陆" click="login()"/>
+			</s:HGroup>
+		</s:VGroup>
+	</s:BorderContainer>
+</s:Application>
