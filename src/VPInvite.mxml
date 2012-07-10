@@ -20,7 +20,9 @@
 			
 			// please insert your web service URL here for exchanging peer ID
 			// private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
-			private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
+			//test
+			private const WebServiceUrl:String = "http://www.localshiyishi.cn/reg/index.do";
+			//test
 			
 			// this is the connection to rtmfp server
 			private var netConnection:NetConnection;	
@@ -34,6 +36,9 @@
 			private var talentVideo:Video;
 			private var companyVideo:Video;
 			
+			private const thirdPartCall:String = "thirdPartCall";
+			private const publishFmsToThirdPart:String = "publishFmsToThirdPart";
+			
 			private function login():void
 			{
 				inviteService.url = WebServiceUrl;
@@ -43,22 +48,31 @@
 				inviteService.send(request);
 			}
 			
-			private function connectSuccess():void
-			{			
+			private function requestP2pStreamFromTalent():void
+			{
+				netConnection.call('relay', null, talentId, thirdPartCall, 'thirdPart');
 				talentStream = new NetStream(netConnection, talentId);
-				talentStream.addEventListener(NetStatusEvent.NET_STATUS, incomingStreamHandler);
-				talentStream.play("media-callee");
+				talentStream.play("thirdPart");
+			}
+			
+			private function requestP2pStreamFromCompany():void
+			{
+				netConnection.call('relay', null, companyId, thirdPartCall, 'thirdPart');
+				companyStream = new NetStream(netConnection, companyId);
+				companyStream.play("thirdPart");
+			}
+			
+			private function connectSuccess():void
+			{
+				requestP2pStreamFromTalent();
+				requestP2pStreamFromCompany();
 				
 				talentVideo = new Video();
 				talentVideo.width = 180;
 				talentVideo.height = 135;
 				talentVideo.attachNetStream(talentStream);
 				talentVideoDisplay.addChild(talentVideo);
-				
-				companyStream = new NetStream(netConnection, companyId);
-				companyStream.addEventListener(NetStatusEvent.NET_STATUS, incomingStreamHandler);
-				companyStream.play("media-caller");
-				
+
 				companyVideo = new Video();
 				companyVideo.width = 180;
 				companyVideo.height = 135;
@@ -103,6 +117,28 @@
 					companyId = tmpCompanyId;
 					netConnection = new NetConnection();
 					netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
+					var c:Object = new Object();
+					c.onRelay = function(id:String, action:String, name:String):void
+					{
+						if (publishFmsToThirdPart == action)
+						{
+							if (name == 'talent')
+							{
+								talentStream = new NetStream(netConnection);
+								talentStream.play("thirdPart_" + id);
+								talentVideo.attachNetStream(talentStream);
+
+							}
+							else if (name == 'company')
+							{
+								companyStream = new NetStream(netConnection);
+								companyStream.play("thirdPart_" + id);
+								companyVideo.attachNetStream(companyStream);
+							}
+						}
+					}
+					
+					netConnection.client = c;
 					try
 					{
 						netConnection.connect(connectUrl, DeveloperKey);
