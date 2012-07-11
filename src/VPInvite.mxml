@@ -14,7 +14,10 @@
 	<fx:Script>
 		<![CDATA[
 			// rtmfp server address (Adobe Cirrus or FMS)
-			private var connectUrl:String = "rtmfp://210.51.38.12/cr";			
+			//test
+			//[Bindable] private var connectUrl:String = "rtmfp://210.51.38.12/cr";
+			[Bindable] private var connectUrl:String = "rtmfp://180.169.20.22/cr";
+			//test		
 			// developer key, please insert your developer key here
 			private const DeveloperKey:String = "4cd930a206f39d7d7566149d-396053390564";
 			
@@ -86,7 +89,7 @@
 				var msg:String = textInput.text; 
 				if (msg.length != 0 && companyStream)
 				{
-					textOutput.text += '嘉宾' + ": " + msg + "\n";
+					textOutput.text += netConnection.nearID + '嘉宾' + ": " + msg + "\n";
 					netConnection.call('relay', null, companyId, 'sms', msg);
 					textInput.text = "";
 				}
