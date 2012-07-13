@@ -90,7 +90,7 @@
 				if (msg.length != 0 && companyStream)
 				{
 					textOutputDisplay('嘉宾' + ": " + msg);
-					netConnection.call('relay', null, companyId, 'sms', msg);
+					netConnection.call('relay', null, companyId, 'sms', '嘉宾' + ": " + msg);
 					textInput.text = "";
 				}
 			}
