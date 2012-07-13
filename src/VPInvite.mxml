@@ -15,8 +15,8 @@
 		<![CDATA[
 			// rtmfp server address (Adobe Cirrus or FMS)
 			//test
-			//[Bindable] private var connectUrl:String = "rtmfp://210.51.38.12/cr";
-			[Bindable] private var connectUrl:String = "rtmfp://180.169.20.22/cr";
+			[Bindable] private var connectUrl:String = "rtmfp://210.51.38.12/cr";
+			//[Bindable] private var connectUrl:String = "rtmfp://180.169.20.22/cr";
 			//test		
 			// developer key, please insert your developer key here
 			private const DeveloperKey:String = "4cd930a206f39d7d7566149d-396053390564";
@@ -89,7 +89,7 @@
 				var msg:String = textInput.text; 
 				if (msg.length != 0 && companyStream)
 				{
-					textOutput.text += netConnection.nearID + '嘉宾' + ": " + msg + "\n";
+					textOutputDisplay('嘉宾' + ": " + msg);
 					netConnection.call('relay', null, companyId, 'sms', msg);
 					textInput.text = "";
 				}
@@ -158,6 +158,18 @@
 				}
 			}
 
+			private function clearTxt():void
+			{
+				inviteCode.text = '';
+				inviteCode.validateNow();
+			}
+			
+			private function textOutputDisplay(str:String):void
+			{
+				textOutput.text += str + "\n";
+				textOutput.validateNow();
+				textOutput.verticalScrollPosition = textOutput.maxVerticalScrollPosition;
+			}
 		]]>
 	</fx:Script>
 	<s:BorderContainer width="376" height="293" backgroundColor="0x303030" borderStyle="solid"
@@ -179,7 +191,7 @@
 					</s:VGroup>
 				</s:HGroup>
 				
-				<s:TextArea id="textOutput" width="369" height="100" editable="false"
+				<mx:TextArea id="textOutput" width="369" height="100" editable="false"
 							verticalScrollPolicy="auto"/>
 				
 				<s:HGroup>
@@ -191,7 +203,7 @@
 			</s:VGroup>
 		</s:HGroup>
 		<s:VGroup paddingLeft.login="130" paddingTop.login="80">
-			<s:TextInput id="inviteCode" includeIn="login"/>
+			<s:TextInput id="inviteCode" includeIn="login" focusIn="clearTxt()"/>
 			<s:HGroup includeIn="login" width="126" height="28">
 				<s:Spacer includeIn="login" width="20" height="17"/>
 				<s:Button includeIn="login" label="登陆" click="login()"/>
