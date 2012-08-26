@@ -44,6 +44,12 @@
 			
 			private function login():void
 			{
+				msg.text = '';
+				if (visitorName.text == '')
+				{
+					msg.text = "请输入昵称后登录!";
+					return;
+				}
 				inviteService.url = WebServiceUrl;
 				var request:Object = new Object();
 				request.taskType = 'join';
@@ -89,8 +95,8 @@
 				var msg:String = textInput.text; 
 				if (msg.length != 0 && companyStream)
 				{
-					textOutputDisplay('嘉宾' + ": " + msg);
-					netConnection.call('relay', null, companyId, 'sms', '嘉宾' + ": " + msg);
+					textOutputDisplay(visitorName.text + '(嘉宾)' + ": " + msg);
+					netConnection.call('relay', null, companyId, 'sms', visitorName.text + '(嘉宾)' + ": " + msg);
 					textInput.text = "";
 				}
 			}
@@ -203,6 +209,14 @@
 			</s:VGroup>
 		</s:HGroup>
 		<s:VGroup paddingLeft.login="130" paddingTop.login="80">
+			<s:Label id="msg" includeIn="login" width="125" height="16" color="#F73A0E"/>
+			<s:HGroup>
+				<s:Label text="昵称" color="0xFFFFFF">
+					
+				</s:Label>
+				<s:TextInput id="visitorName" includeIn="login" width="97"/>
+			</s:HGroup>
+
 			<s:TextInput id="inviteCode" includeIn="login" focusIn="clearTxt()"/>
 			<s:HGroup includeIn="login" width="126" height="28">
 				<s:Spacer includeIn="login" width="20" height="17"/>
