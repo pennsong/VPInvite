@@ -13,9 +13,10 @@
 	</fx:Declarations>
 	<fx:Script>
 		<![CDATA[
+			import mx.rpc.events.ResultEvent;
 			// rtmfp server address (Adobe Cirrus or FMS)
 			//test
-			[Bindable] private var connectUrl:String = "rtmfp://210.51.38.12/cr";
+			[Bindable] private var connectUrl:String = "rtmfp://112.65.246.54/cr";
 			//[Bindable] private var connectUrl:String = "rtmfp://180.169.20.22/cr";
 			//test		
 			// developer key, please insert your developer key here
@@ -24,7 +25,7 @@
 			// please insert your web service URL here for exchanging peer ID
 			// private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
 			//test
-			private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
+			private const WebServiceUrl:String = "http://www.localshiyishi.cn/reg/index.do";
 			//test
 			
 			// this is the connection to rtmfp server
@@ -39,8 +40,10 @@
 			private var talentVideo:Video;
 			private var companyVideo:Video;
 			
+			private const Relay:String = "relay";
 			private const thirdPartCall:String = "thirdPartCall";
 			private const publishFmsToThirdPart:String = "publishFmsToThirdPart";
+			private const Resume:String = "resume";
 			
 			private function login():void
 			{
@@ -145,6 +148,10 @@
 								companyVideo.attachNetStream(companyStream);
 							}
 						}
+						else if (Resume == action)
+						{
+							resume.text = name;
+						}
 					}
 					
 					netConnection.client = c;
@@ -157,6 +164,7 @@
 						return;
 					}
 					currentState = 'main';
+					netConnection.call(Relay, null, companyId, Resume, '');
 				}
 				else
 				{
@@ -179,12 +187,15 @@
 		]]>
 	</fx:Script>
 	<s:BorderContainer width="376" height="293" backgroundColor="0x303030" borderStyle="solid"
-					   cornerRadius="10">
+					   cornerRadius="10"
+					   width.login="677"
+					   width.main="676">
 		<s:layout>
 			<s:VerticalLayout paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5"/>
 		</s:layout>
 		
 		<s:HGroup includeIn="main">
+			
 			<s:VGroup>			
 				
 				<s:HGroup>
@@ -207,8 +218,13 @@
 				</s:HGroup>
 				
 			</s:VGroup>
+			<s:VGroup height="287">				
+				<s:Label height="22" color="0xffffff" text="简历" verticalAlign="bottom"/>
+				<s:TextArea id="resume" width="293" height="255" editable="false"
+							verticalScrollPolicy="auto"/>
+			</s:VGroup>
 		</s:HGroup>
-		<s:VGroup paddingLeft.login="130" paddingTop.login="80">
+		<s:VGroup paddingLeft.login="230" paddingTop.login="80" includeIn="login">
 			<s:Label id="msg" includeIn="login" width="125" height="16" color="#F73A0E"/>
 			<s:HGroup>
 				<s:Label text="昵称" width="40" color="0xFFFFFF">
