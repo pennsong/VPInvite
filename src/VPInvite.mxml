@@ -10,22 +10,32 @@
 	<fx:Declarations>
 		<!-- Place non-visual elements (e.g., services, value objects) here -->
 		<s:HTTPService id="inviteService" result="getIds()"/>
+		<s:HTTPService id="regThirdParty" result="heartBeat()"/>
+		<s:HTTPService id="thirdPartyHeartBeat" result="heartBeat2()"/>
+		<s:HTTPService id="thirdPartyList" result="getThirdPartyList()"/>
 	</fx:Declarations>
 	<fx:Script>
 		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.collections.ArrayList;
 			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectProxy;
+			
+			import spark.events.GridSelectionEvent;
+			[Bindable]
+			private var userList:ArrayCollection;
 			// rtmfp server address (Adobe Cirrus or FMS)
+			[Bindable] private var connectUrl:String = "rtmfp://210.51.38.12/cr"
 			//test
-			[Bindable] private var connectUrl:String = "rtmfp://112.65.246.54/cr";
-			//[Bindable] private var connectUrl:String = "rtmfp://180.169.20.22/cr";
+			//[Bindable] private var connectUrl:String = "rtmfp://112.65.246.54/cr";
 			//test		
 			// developer key, please insert your developer key here
 			private const DeveloperKey:String = "4cd930a206f39d7d7566149d-396053390564";
 			
 			// please insert your web service URL here for exchanging peer ID
-			// private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
+			 private const WebServiceUrl:String = "http://www.shiyishi.cn/reg/index.do";
 			//test
-			private const WebServiceUrl:String = "http://www.localshiyishi.cn/reg/index.do";
+			//private const WebServiceUrl:String = "http://www.localshiyishi.cn/reg/index.do";
 			//test
 			
 			// this is the connection to rtmfp server
@@ -33,6 +43,10 @@
 					
 			private var talentId:String;
 			private var companyId:String;
+			private var myId:String;
+			private var myName:String;
+			private var roomId:int;
+			private var heartBeatId:String;
 			// incoming media stream (audio, video, text and some control messages)
 			private var talentStream:NetStream;
 			private var companyStream:NetStream;
@@ -40,10 +54,15 @@
 			private var talentVideo:Video;
 			private var companyVideo:Video;
 			
+			private var activityTimer:Timer;
+			
 			private const Relay:String = "relay";
 			private const thirdPartCall:String = "thirdPartCall";
 			private const publishFmsToThirdPart:String = "publishFmsToThirdPart";
 			private const Resume:String = "resume";
+			private const sendSms:String = "sendSms";
+			private const getSms:String = "getSms";
+			private var timeCount:int = 0;
 			
 			private function login():void
 			{
@@ -53,7 +72,11 @@
 					msg.text = "请输入昵称后登录!";
 					return;
 				}
+				myName = visitorName.text;
 				inviteService.url = WebServiceUrl;
+				regThirdParty.url = WebServiceUrl;
+				thirdPartyHeartBeat.url = WebServiceUrl;
+				thirdPartyList.url = WebServiceUrl;
 				var request:Object = new Object();
 				request.taskType = 'join';
 				request.inviteCode = inviteCode.text;
@@ -76,6 +99,16 @@
 			
 			private function connectSuccess():void
 			{
+				myId = netConnection.nearID;
+				var tmpString:String = inviteCode.text;
+				roomId = Number(tmpString.substring(tmpString.indexOf('_')+1));
+				//把myId, myName存入数据库
+				var request:Object = new Object();
+				request.taskType = 'regThirdParty';
+				request.thirdPartyRoom = roomId;
+				request.thirdPartyIdentity = myId;
+				request.thirdPartyName = myName;
+				regThirdParty.send(request);
 				requestP2pStreamFromTalent();
 				requestP2pStreamFromCompany();
 				
@@ -98,9 +131,25 @@
 				var msg:String = textInput.text; 
 				if (msg.length != 0 && companyStream)
 				{
-					textOutputDisplay(visitorName.text + '(嘉宾)' + ": " + msg);
-					netConnection.call('relay', null, companyId, 'sms', visitorName.text + '(嘉宾)' + ": " + msg);
+					netConnection.call('relay', null, companyId, 'sendSms', visitorName.text + ' to ' + speakTo.text + ": " + msg);
 					textInput.text = "";
+				}
+			}
+			
+			private function getDialogAndHeartBeat(e:TimerEvent):void
+			{
+				netConnection.call('relay', null, companyId, getSms, null);
+				//heartbeat
+				var request:Object = new Object();
+				request.taskType = 'thirdPartyHeartBeat';
+				request.heartBeatId = heartBeatId;
+				thirdPartyHeartBeat.send(request);
+				if (timeCount++ % 10 == 0)
+				{
+					//get third party list
+					request = new Object();
+					request.taskType = 'getThirdPartyList';
+					thirdPartyList.send(request);	
 				}
 			}
 			
@@ -118,7 +167,44 @@
 						break;
 				}
 			}
+			private function heartBeat():void
+			{
+				if (regThirdParty.lastResult.result)
+				{
+					//注册成功
+					heartBeatId = regThirdParty.lastResult.result;
+				}
+				else
+				{
+				}
+			}
 			
+			private function heartBeat2():void
+			{
+			}
+			
+			private function getThirdPartyList():void
+			{
+				if (thirdPartyList.lastResult.result.hasOwnProperty("user"))
+				{
+					var remote:Object = thirdPartyList.lastResult.result as Object;
+
+					var record:* = remote.user;
+					var userList2:ArrayCollection = new ArrayCollection();
+					if (record is ArrayCollection) {
+						for (var i:int=0; i< record.length; i++)
+						{
+							userList2.addItem(record[i]);
+						}
+					} 
+					else if (record is ObjectProxy)
+					{
+						userList2.addItem(record);
+					}
+					userList = userList2;
+					ul.validateNow();	
+				}
+			}
 			private function getIds():void
 			{
 				var tmpTalentId:* = inviteService.lastResult.result.talentId;
@@ -152,6 +238,10 @@
 						{
 							resume.text = name;
 						}
+						else if (getSms == action)
+						{
+							textOutputDisplay(name);
+						}
 					}
 					
 					netConnection.client = c;
@@ -165,6 +255,12 @@
 					}
 					currentState = 'main';
 					netConnection.call(Relay, null, companyId, Resume, '');
+					// getDialog and heartBeat timer
+					activityTimer = new Timer(1000);
+					timeCount = 0;
+					activityTimer.addEventListener(TimerEvent.TIMER, getDialogAndHeartBeat);
+					activityTimer.start();
+					trace("dd");
 				}
 				else
 				{
@@ -172,6 +268,11 @@
 				}
 			}
 
+			protected function ul_selectionChangeHandler(event:GridSelectionEvent):void
+			{
+				speakTo.text = userList.getItemAt(event.selectionChange.rowIndex)['userName'];
+			}
+			
 			private function clearTxt():void
 			{
 				inviteCode.text = '';
@@ -180,7 +281,7 @@
 			
 			private function textOutputDisplay(str:String):void
 			{
-				textOutput.text += str + "\n";
+				textOutput.text = str;
 				textOutput.validateNow();
 				textOutput.verticalScrollPosition = textOutput.maxVerticalScrollPosition;
 			}
@@ -207,12 +308,25 @@
 						<mx:Spacer height="10"/>
 					</s:VGroup>
 				</s:HGroup>
-				
-				<mx:TextArea id="textOutput" width="369" height="100" editable="false"
-							verticalScrollPolicy="auto"/>
+				<s:HGroup>
+					<mx:TextArea id="textOutput" width="250" height="100" editable="false"
+								 verticalScrollPolicy="auto"/>
+					<s:DataGrid id="ul" width="119" height="100" dataProvider="{userList}"
+								selectionChange="ul_selectionChangeHandler(event)"
+								color="#000000">
+						<s:columns>
+							<s:ArrayList>
+								<s:GridColumn dataField="userName" headerText="用户"/>
+							</s:ArrayList>
+						</s:columns>					
+					</s:DataGrid>
+
+				</s:HGroup>
+
 				
 				<s:HGroup>
-					<s:TextInput id="textInput" width="293" enter="onSend()"/>
+					<s:Label id="speakTo" width="50" color="0xffffff" text="" verticalAlign="bottom"/>
+					<s:TextInput id="textInput" width="243" enter="onSend()"/>
 					<s:Button label="发送" click="onSend()" enabled="{textInput.text.length &gt; 0}"
 							  styleName="buttonStyle"/>
 				</s:HGroup>
