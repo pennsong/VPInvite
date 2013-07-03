@@ -25,10 +25,11 @@
 			[Bindable]
 			private var userList:ArrayCollection;
 			// rtmfp server address (Adobe Cirrus or FMS)
-			[Bindable] private var connectUrl:String = "rtmfp://210.51.38.12/cr"
 			//test
-			//[Bindable] private var connectUrl:String = "rtmfp://112.65.246.54/cr";
-			//test		
+			//[Bindable] private var connectUrl:String = "rtmfp://210.51.38.12/cr"
+			//test
+			[Bindable] private var connectUrl:String = "rtmfp://112.65.246.54/cr";
+	
 			// developer key, please insert your developer key here
 			private const DeveloperKey:String = "4cd930a206f39d7d7566149d-396053390564";
 			
